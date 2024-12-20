@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import * as query from '../../prisma/query.js';
-import { customerGuard } from '../../middlewares/authentication/customerGuard';
+
 
 
 const flightsRoute = new Hono();
@@ -8,7 +8,7 @@ const flightsRoute = new Hono();
 /**
  * Tìm kiếm chuyến bay (bảo vệ bởi customerGuard)
  */
-flightsRoute.post('/flights', customerGuard, async (c) => {
+flightsRoute.post('/flights', async (c) => {
   try {
     const { kind, from, to, departure_time, arrival_time, person, ticket_class } = await c.req.json();
     if (!from || !to || !departure_time || !person || !ticket_class) {
@@ -30,7 +30,7 @@ flightsRoute.post('/flights', customerGuard, async (c) => {
 /**
  * Gợi ý chuyến bay (bảo vệ bởi customerGuard)
  */
-flightsRoute.get('/flights/:from', customerGuard, async (c) => {
+flightsRoute.get('/flights/:from', async (c) => {
   try {
     const from = c.req.param('from');
     if (!from) {

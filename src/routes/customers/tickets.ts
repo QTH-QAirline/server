@@ -1,13 +1,14 @@
 // src/routes/customers/tickets.ts
 import { Hono } from 'hono';
 import * as query from '../../prisma/query.js';
+import { customerGuard } from '../../middlewares/authentication/customerGuard.js';
 
 const ticketsRoute = new Hono();
 
 /**
  * Hiển thị vé của khách hàng
  */
-ticketsRoute.get('/tickets/:customer_id', async (c) => {
+ticketsRoute.get('/tickets/:customer_id',customerGuard, async (c) => {
   try {
     const customer_id = parseInt(c.req.param('customer_id'), 10);
     if (isNaN(customer_id)) {
@@ -25,7 +26,7 @@ ticketsRoute.get('/tickets/:customer_id', async (c) => {
 /**
  * Hủy vé
  */
-ticketsRoute.put('/tickets/:reservation_id', async (c) => {
+ticketsRoute.put('/tickets/:reservation_id',customerGuard, async (c) => {
   try {
     const reservation_id = parseInt(c.req.param('reservation_id'), 10);
     if (isNaN(reservation_id)) {

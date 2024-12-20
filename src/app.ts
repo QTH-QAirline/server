@@ -3,6 +3,7 @@ import authRoute from './routes/auth';
 import 'dotenv/config';
 import customerFlights from './routes/customers/flights';
 import customerTickets from './routes/customers/tickets';
+import customerAirports from './routes/customers/airports';
 import adminFlights from './routes/admin/flights';
 import adminPromotions from './routes/admin/promotions';
 import adminNews from './routes/admin/news';
@@ -37,6 +38,7 @@ app.route('/auth/admin', adminAuthRoute);
 
 app.route('/customers', customerFlights);
 app.route('/customers', customerTickets);
+app.route('/', customerAirports);
 app.route('/admin', adminFlights);
 app.route('/admin', adminPromotions);
 app.route('/admin', adminNews);

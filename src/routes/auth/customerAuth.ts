@@ -63,7 +63,7 @@ customerAuthRoute.post('/login', zValidator('json', loginSchema), async (c) => {
     // Tạo token JWT với thời gian hết hạn 7 ngày
     const token = await createToken({ customer_id: user.customer_id, email: user.email, role: 'CUSTOMER' }, '7d');
 
-    return c.json({ message: 'Đăng nhập thành công!', token });
+    return c.json({ message: 'Đăng nhập thành công!', customer_id:user.customer_id, token });
   } catch (error) {
     return c.json({ error: 'Đã xảy ra lỗi khi đăng nhập!', details: (error as Error).message }, 500);
   }

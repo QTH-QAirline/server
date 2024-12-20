@@ -16,7 +16,7 @@ export const jwtValidator: MiddlewareHandler = async (c, next) => {
   try {
     const payload = await verify(token, JWT_SECRET);
     c.set('user', payload); // Lưu payload vào context
-    await next();
+    // await next();
   } catch (error) {
     return c.json({ error: 'Token không hợp lệ hoặc đã hết hạn!' }, 401);
   }
