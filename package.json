@@ -1,0 +1,33 @@
+{
+  "name": "hono-app",
+  "version": "1.0.0",
+  "description": "A web application using Hono, Bun, Prisma, and Resend",
+  "scripts": {
+    "dev": "bun run src/app.ts",
+    "build": "bun build src/app.ts --outdir dist",
+    "start": "bun run dist/app.js",
+    "migrate": "bun run prisma migrate dev",
+    "generate": "bun run prisma generate",
+    "lint": "bunx eslint .",
+    "format": "bunx prettier --write .",
+    "db:studio": "bun run prisma studio"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.4.2",
+    "@prisma/client": "^6.1.0",
+    "dotenv": "^16.4.7",
+    "hono": "^4.6.14",
+    "mailersend": "^2.3.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/bun": "^1.1.14",
+    "@types/node": "^22.10.2",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.1.0",
+    "typescript": "^5.4.5"
+  }
+}
