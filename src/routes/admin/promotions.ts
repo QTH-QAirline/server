@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client';
-import { adminAuth } from '../../middlewares/adminAuth';
+import { adminGuard } from '../../middlewares/authentication/adminGuard';
+
 
 const prisma = new PrismaClient();
 const adminPromotions = new Hono();
 
 // Lấy danh sách tất cả khuyến mãi (chỉ admin mới được phép)
-adminPromotions.get('/promotions', adminAuth, async (c) => {
+adminPromotions.get('/promotions', adminGuard, async (c) => {
   try {
     const promotions = await prisma.promotions.findMany();
     return c.json(promotions);
@@ -16,7 +17,7 @@ adminPromotions.get('/promotions', adminAuth, async (c) => {
 });
 
 // Lấy thông tin chi tiết của một khuyến mãi theo ID
-adminPromotions.get('/promotions/:id', adminAuth, async (c) => {
+adminPromotions.get('/promotions/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
 
   try {
@@ -35,7 +36,7 @@ adminPromotions.get('/promotions/:id', adminAuth, async (c) => {
 });
 
 // Thêm một khuyến mãi mới
-adminPromotions.post('/promotions', adminAuth, async (c) => {
+adminPromotions.post('/promotions', adminGuard, async (c) => {
   const data = await c.req.json();
 
   try {
@@ -47,7 +48,7 @@ adminPromotions.post('/promotions', adminAuth, async (c) => {
 });
 
 // Cập nhật thông tin khuyến mãi theo ID
-adminPromotions.put('/promotions/:id', adminAuth, async (c) => {
+adminPromotions.put('/promotions/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
   const data = await c.req.json();
 
@@ -64,7 +65,7 @@ adminPromotions.put('/promotions/:id', adminAuth, async (c) => {
 });
 
 // Xóa một khuyến mãi theo ID
-adminPromotions.delete('/promotions/:id', adminAuth, async (c) => {
+adminPromotions.delete('/promotions/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
 
   try {

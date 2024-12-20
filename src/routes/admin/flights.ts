@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client';
-import { adminAuth } from '../../middlewares/adminAuth';
+import { adminGuard } from '../../middlewares/authentication/adminGuard';
+
 
 const prisma = new PrismaClient();
 const adminFlights = new Hono();
 
 // Lấy danh sách tất cả chuyến bay (chỉ admin mới được phép)
-adminFlights.get('/flights', adminAuth, async (c) => {
+adminFlights.get('/flights', adminGuard, async (c) => {
   try {
     const flights = await prisma.flights.findMany({
       include: {
@@ -22,7 +23,7 @@ adminFlights.get('/flights', adminAuth, async (c) => {
 });
 
 // Lấy thông tin chi tiết của một chuyến bay theo ID
-adminFlights.get('/flights/:id', adminAuth, async (c) => {
+adminFlights.get('/flights/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
 
   try {
@@ -46,7 +47,7 @@ adminFlights.get('/flights/:id', adminAuth, async (c) => {
 });
 
 // Thêm một chuyến bay mới
-adminFlights.post('/flights', adminAuth, async (c) => {
+adminFlights.post('/flights', adminGuard, async (c) => {
   const data = await c.req.json();
 
   try {
@@ -58,7 +59,7 @@ adminFlights.post('/flights', adminAuth, async (c) => {
 });
 
 // Cập nhật thông tin chuyến bay theo ID
-adminFlights.put('/flights/:id', adminAuth, async (c) => {
+adminFlights.put('/flights/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
   const data = await c.req.json();
 
@@ -75,7 +76,7 @@ adminFlights.put('/flights/:id', adminAuth, async (c) => {
 });
 
 // Xóa một chuyến bay theo ID
-adminFlights.delete('/flights/:id', adminAuth, async (c) => {
+adminFlights.delete('/flights/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
 
   try {

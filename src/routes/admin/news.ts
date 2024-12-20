@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client';
-import { adminAuth } from '../../middlewares/adminAuth';
+import { adminGuard } from '../../middlewares/authentication/adminGuard';
+
 
 const prisma = new PrismaClient();
 const adminNews = new Hono();
 
 // Lấy danh sách tất cả tin tức (chỉ admin mới được phép)
-adminNews.get('/news', adminAuth, async (c) => {
+adminNews.get('/news', adminGuard, async (c) => {
   try {
     const newsList = await prisma.news.findMany();
     return c.json(newsList);
@@ -16,7 +17,7 @@ adminNews.get('/news', adminAuth, async (c) => {
 });
 
 // Lấy thông tin chi tiết của một tin tức theo ID
-adminNews.get('/news/:id', adminAuth, async (c) => {
+adminNews.get('/news/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
 
   try {
@@ -35,7 +36,7 @@ adminNews.get('/news/:id', adminAuth, async (c) => {
 });
 
 // Thêm một tin tức mới
-adminNews.post('/news', adminAuth, async (c) => {
+adminNews.post('/news', adminGuard, async (c) => {
   const data = await c.req.json();
 
   try {
@@ -47,7 +48,7 @@ adminNews.post('/news', adminAuth, async (c) => {
 });
 
 // Cập nhật thông tin tin tức theo ID
-adminNews.put('/news/:id', adminAuth, async (c) => {
+adminNews.put('/news/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
   const data = await c.req.json();
 
@@ -64,7 +65,7 @@ adminNews.put('/news/:id', adminAuth, async (c) => {
 });
 
 // Xóa một tin tức theo ID
-adminNews.delete('/news/:id', adminAuth, async (c) => {
+adminNews.delete('/news/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
 
   try {

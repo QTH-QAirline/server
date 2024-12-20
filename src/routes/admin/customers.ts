@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client';
-import { adminAuth } from '../../middlewares/adminAuth';
+import { adminGuard } from '../../middlewares/authentication/adminGuard';
+
 
 const prisma = new PrismaClient();
 const adminCustomers = new Hono();
 
 // Lấy danh sách tất cả khách hàng (chỉ admin mới được phép)
-adminCustomers.get('/customers', adminAuth, async (c) => {
+adminCustomers.get('/customers', adminGuard, async (c) => {
   try {
     const customers = await prisma.customers.findMany();
     return c.json(customers);
@@ -16,7 +17,7 @@ adminCustomers.get('/customers', adminAuth, async (c) => {
 });
 
 // Lấy thông tin chi tiết của một khách hàng theo ID
-adminCustomers.get('/customers/:id', adminAuth, async (c) => {
+adminCustomers.get('/customers/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
 
   try {
@@ -35,7 +36,7 @@ adminCustomers.get('/customers/:id', adminAuth, async (c) => {
 });
 
 // Xóa một khách hàng theo ID
-adminCustomers.delete('/customers/:id', adminAuth, async (c) => {
+adminCustomers.delete('/customers/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
 
   try {
@@ -50,7 +51,7 @@ adminCustomers.delete('/customers/:id', adminAuth, async (c) => {
 });
 
 // Cập nhật thông tin khách hàng theo ID
-adminCustomers.put('/customers/:id', adminAuth, async (c) => {
+adminCustomers.put('/customers/:id', adminGuard, async (c) => {
   const id = Number(c.req.param('id'));
   const data = await c.req.json();
 
