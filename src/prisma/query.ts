@@ -162,149 +162,142 @@ export async function bookTicket(customer_id: number, flight_id: number, seat_nu
  * Tìm kiếm chuyến bay
  */
 export async function searchFlights(
-    from: string,
-    to: string,
-    date: string, // Định dạng 'YYYY-MM-DD'
-    person: number,
-    ticket_class: string
-  ): Promise<FlightData[]> {
-    try {
-      // Chuyển đổi ngày thành khoảng thời gian từ đầu ngày đến cuối ngày
-      const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
-  
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
-  
-      // Tìm danh sách flight_id có đủ ghế trống
-      const list_id = await prisma.seat_assignments.groupBy({
-        by: ["flight_id"],
-        where: {
-          class: ticket_class,
-          status: "Available",
-        },
-        _count: {
-          flight_id: true,
-        },
-        having: {
+  from: string,
+  to: string,
+  date: string, // Định dạng 'YYYY-MM-DD'
+  person: number,
+  ticket_class: string
+) {
+  try {
+    // Chuyển đổi ngày thành khoảng thời gian từ đầu ngày đến cuối ngày
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+
+    // Tìm danh sách flight_id có đủ ghế trống
+    const list_id = await prisma.seat_assignments.groupBy({
+      by: ["flight_id"],  // Nhóm theo flight_id
+      where: {
+        class: ticket_class,  // Điều kiện lọc theo class
+        status: "Available",
+      },
+      _count: {  // Đếm số lượng bản ghi trong mỗi nhóm
+        flight_id: true
+      },
+      having: {
+        flight_id: {
           _count: {
-            flight_id: {
-              gte: person,
-            },
-          },
-        },
-      });
-  
-      const flightIds = list_id.map((x) => x.flight_id);
-  
-      // Tìm các chuyến bay khớp với ngày khởi hành
-      const flights = await prisma.flights.findMany({
-        where: {
-          flight_id: { in: flightIds },
-          airports_flights_departure_airportToairports: { iata_code: from },
-          airports_flights_arrival_airportToairports: { iata_code: to },
-          departure_time: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-        include: {
-          airports_flights_departure_airportToairports: true,
-          airports_flights_arrival_airportToairports: true,
-          promotions: {
-            take: 1,
-            where: {
-              start_date: { lte: endDate },
-              end_date: { gte: startDate },
-            },
-            orderBy: { discount_rate: "desc" },
-            select: { discount_rate: true },
-          },
-          seat_assignments: true,
-        },
-      });
-  
-      if (!flights || flights.length === 0) {
-        throw new Error("Không có chuyến bay nào như bạn yêu cầu");
+            gte: person  // Lọc các nhóm có số lượng flight_id lớn hơn person
+          }
+        }
       }
-  
-      // Chuyển đổi dữ liệu thành định dạng yêu cầu
-      const flightData: FlightData[] = flights.map((flight) => {
-        const departureAirport = flight.airports_flights_departure_airportToairports;
-        const arrivalAirport = flight.airports_flights_arrival_airportToairports;
-        const promotion = flight.promotions[0]?.discount_rate || 0;
-  
-        const economySeats = flight.seat_assignments.filter((seat) => seat.class === "Economy" && seat.status === "Available").length;
-        const businessSeats = flight.seat_assignments.filter((seat) => seat.class === "Business" && seat.status === "Available").length;
-        const firstClassSeats = flight.seat_assignments.filter((seat) => seat.class === "FirstClass" && seat.status === "Available").length;
-  
-        return {
-          stops: 0,
-          totalDuration: `${Math.floor(
-            (new Date(flight.arrival_time).getTime() - new Date(flight.departure_time).getTime()) /
-              (1000 * 60)
-          )} minutes`,
-          departure: {
-            airportCode: departureAirport.iata_code,
-            city: departureAirport.location,
-            time: new Date(flight.departure_time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-            terminal: departureAirport?.terminal || "Unknown",
-            date: new Date(flight.departure_time).toLocaleDateString("en-US"),
-            dayOfWeek: new Date(flight.departure_time).toLocaleDateString("en-US", {
-              weekday: "long",
-            }),
+    });
+
+    const flightIds = list_id.map((x) => x.flight_id);
+
+    // Tìm các chuyến bay khớp với ngày khởi hành
+    const flights = await prisma.flights.findMany({
+      where: {
+        flight_id: { in: flightIds },
+        airports_flights_departure_airportToairports: { iata_code: from },
+        airports_flights_arrival_airportToairports: { iata_code: to },
+        departure_time: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        airports_flights_departure_airportToairports: true,
+        airports_flights_arrival_airportToairports: true,
+        promotions: {
+          take: 1,
+          where: {
+            start_date: { lte: endDate },
+            end_date: { gte: startDate },
           },
-          arrival: {
-            airportCode: arrivalAirport.iata_code,
-            city: arrivalAirport.location,
-            time: new Date(flight.arrival_time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-            terminal: arrivalAirport?.terminal || "Unknown",
-            date: new Date(flight.arrival_time).toLocaleDateString("en-US"),
-            dayOfWeek: new Date(flight.arrival_time).toLocaleDateString("en-US", {
-              weekday: "long",
+          orderBy: { discount_rate: "desc" },
+          select: { discount_rate: true },
+        },
+      },
+    });
+
+
+
+    if(!flights) {
+      throw new Error("Không có chuyến bay nào như bạn yêu cầu");
+    }
+    const result = [];
+    for(var x of flights) {
+        result.push({
+            stops: 0,
+            totalDuration: `${Math.floor(
+                (new Date(x.arrival_time).getTime() - new Date(x.departure_time).getTime()) /
+                  (1000 * 60)
+              )} minutes`,
+            departure: {
+            airportCode: x.airports_flights_departure_airportToairports.iata_code,
+            city: x.airports_flights_departure_airportToairports.location,
+            time: x.departure_time.toISOString().split("T")[1],
+            terminal: "N/A", // Thông tin terminal không có trong schema
+            date: x.departure_time.toISOString().split("T")[0],
+            dayOfWeek: new Date(x.departure_time).toLocaleDateString("en-US", {
+            weekday: "long",
             }),
-          },
-          flights: [
-            {
-              airline: flight.aircrafts?.manufacturer || "Unknown",
-              flightNumber: FL${flight.flight_id},
-              operatedBy: flight.aircrafts?.model || "Unknown",
             },
-          ],
-          pricing: {
+            arrival: {
+                airportCode: x.airports_flights_arrival_airportToairports.iata_code,
+                city: x.airports_flights_arrival_airportToairports.location,
+                time: x.arrival_time.toISOString().split("T")[1],
+                terminal: "N/A", // Thông tin terminal không có trong schema
+                date: x.arrival_time.toISOString().split("T")[0],
+                dayOfWeek: new Date(x.arrival_time).toLocaleDateString("en-US", {
+                weekday: "long",
+                }),
+            },
+            flights: [
+            {
+                airline: "QAirline",
+                flightNumber: x.flight_id,
+                operatedBy: "QAirline",
+            },
+            ],
+            pricing: {
             economy: {
-              availability: economySeats > 0 ? ${economySeats} seats available : "Sold out",
-              price: {
-                currency: "USD",
-                amount: Math.max(Number(flight.base_price) - Number(promotion), 0),
+                availability: "Multiple seats",
+                price: {
+                currency: "VND",
+                amount: 1850000,
                 perPerson: true,
-              },
+                },
             },
             business: {
-              availability: businessSeats > 0 ? ${businessSeats} seats available : "Sold out",
-              price: {
-                currency: "USD",
-                amount: Math.max(Number(flight.base_price) * 1.5 - Number(promotion), 0),
+                availability: "3 seats left",
+                price: {
+                currency: "VND",
+                amount: 6200000,
                 perPerson: true,
-              },
+                },
             },
             firstClass: {
-              availability: firstClassSeats > 0 ? ${firstClassSeats} seats available : "Sold out",
-              price: {
-                currency: "USD",
-                amount: Math.max(Number(flight.base_price) * 2 - Number(promotion), 0),
+                availability: "2 seats left",
+                price: {
+                currency: "VND",
+                amount: 12500000,
                 perPerson: true,
-              },
+                },
             },
-          },
-        };
-      });
-  
-      return flightData;
-    } catch (error) {
-      throw new Error(Lỗi tìm kiếm chuyến bay: ${(error as Error).message});
+            },
+
+        });
     }
+    return flights;
+  } catch (error) {
+    throw new Error(`Lỗi tìm kiếm chuyến bay: ${(error as Error).message}`);
   }
+}
 
 /**
  * Gợi ý chuyến bay
