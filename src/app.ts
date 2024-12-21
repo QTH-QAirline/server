@@ -15,6 +15,8 @@ import customerAuthRoute from './routes/auth/customerAuth';
 import adminAuthRoute from './routes/auth/adminAuth';
 import adminAircraft from './routes/admin/aircraft';
 import airportsRoute from './routes/customers/airports';
+import adminBooking from './routes/admin/booking';
+import change from './routes/admin/change';
 // import {cors} from 'hono/cors';
 
 const app = new Hono();
@@ -43,6 +45,9 @@ app.route('/admin', adminAircraft);
 app.route('/admin', adminFlights);
 app.route('/admin', adminPromotions);
 app.route('/admin', adminNews);
+app.route('/admin', adminBooking);
+app.route('/admin', change);
+
 
 // Middleware xử lý lỗi tập trung
 app.onError(errorHandler);

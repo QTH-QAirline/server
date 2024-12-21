@@ -17,7 +17,7 @@ ticketsRoute.get('/tickets/:customer_id',customerGuard, async (c) => {
     }
 
     const response = await query.getTicketOfCustomer(customer_id);
-    console.log(response);
+    console.log(typeof(response));
 
     return c.json(response); 
    

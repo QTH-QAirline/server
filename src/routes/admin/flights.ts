@@ -16,7 +16,7 @@ adminFlights.post("/flight", adminGuard, async (c) => {
       if(!aircraft_id || !departure_airport || !arrival_airport || !departure_time || !arrival_time || !base_price || !created_at) 
           return c.text("Thiếu tham số");
       const response = await query.addFlight(aircraft_id, departure_airport, arrival_airport, departure_time, arrival_time, base_price, created_at);
-      return c.text("Nhập dữ liệu chuyến bay thành công với flights_id là " + response);
+      return c.json(response);
   } catch(error) {
       if (error instanceof Error) {
           return c.text(error.message);
@@ -55,6 +55,11 @@ adminFlights.get("/flight/:id", adminGuard, async(c) => {
       }
   }
 })
+
+adminFlights.get("/flight", adminGuard, async(c) => {
+    const response = await query.getFlight();
+    return c.json(response);
+});
 /**
  * test
  */

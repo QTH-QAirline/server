@@ -1,6 +1,9 @@
 import { PrismaClient } from "@prisma/client";
+import { Flight, Airport } from "../interface";
+import { object } from "zod";
 
 const prisma = new PrismaClient();
+
 
 /**
  * Lấy vé của khách hàng
@@ -11,16 +14,84 @@ export async function getTicketOfCustomer(customer_id: number) {
       where: {customer_id: customer_id},
       select: {
           reservation_id: true,
+          tickets: true,
           flights: {
               include: {
                   airports_flights_departure_airportToairports: true,
-                  airports_flights_arrival_airportToairports: true
+                  airports_flights_arrival_airportToairports: true,
+                  aircrafts: true,
               },
           },
+          
       }
   });
-  if(Ticket.length === 0) throw new Error("Chưa có chuyến bay nào");
-  return Ticket;
+  console.log(Ticket);
+  const upcoming:Flight[] = [];
+  const completed:Flight[] = [];
+  const cancelled:Flight[] = [];
+  //if(Ticket.length === 0) throw new Error("Chưa có chuyến bay nào");
+  for(var x of Ticket) {
+    for(var y of x.tickets) {
+        const departure: Date = new Date(x.flights.departure_time); // Giả sử departure_time là kiểu Date
+        const departure_date: string = departure.toISOString().split('T')[0]; // Lấy ngày
+        const departure_time: string = departure.toISOString().split('T')[1].slice(0, 5);
+        const arrival: Date = new Date(x.flights.arrival_time); // Giả sử arrival_time là kiểu Date
+        const arrival_date: string = arrival.toISOString().split('T')[0]; // Lấy ngày
+        const arrival_time: string = arrival.toISOString().split('T')[1].slice(0, 5);
+        const object: Flight = {
+            id: String(y.ticket_id),
+            from: {
+                city: x.flights.airports_flights_departure_airportToairports.location,
+                airport: x.flights.airports_flights_departure_airportToairports.name,
+                code: x.flights.airports_flights_departure_airportToairports.iata_code,
+                terminal: "T1",
+            },
+            to: {
+                city: x.flights.airports_flights_arrival_airportToairports.location,
+                airport: x.flights.airports_flights_arrival_airportToairports.name,
+                code: x.flights.airports_flights_arrival_airportToairports.iata_code,
+                terminal: "T2",
+            },
+            departureDate: departure_date,
+            departureTime: departure_time,
+            arrivalDate: arrival_date,
+            arrivalTime: arrival_time,
+            flightNumber: String(x.flights.flight_id),
+            airline: "QAirline",
+            aircraft: x.flights.aircrafts.model,
+            status: String(x.flights.flight_status),
+            price: y.price.toNumber(),
+            class: y.class,
+            bookingCode: String(x.reservation_id),
+            cancellationReason: "",
+            
+        }
+        if(x.flights.flight_status == "Scheduled"){
+            upcoming.push(object);
+        }
+        if(x.flights.flight_status == "Completed"){
+            completed.push(object);
+        }
+        if(x.flights.flight_status == "Cancelled"){
+            cancelled.push(object);
+        }
+    }
+  }
+  console.log({
+    flight: {
+        upcoming: upcoming,
+        completed: completed,
+        cancelled: cancelled,
+    }
+  });
+
+  return {
+    flights: {
+        upcoming: (upcoming.length === 0)?null:upcoming,
+        completed: (completed.length === 0)?null:completed,
+        cancelled: (cancelled.length === 0)?null:cancelled,
+    }
+  }
 }
 
 /**
@@ -58,14 +129,14 @@ export async function cancelTicket(reservation_id: number) {
   await prisma.reservations.update({
       where: { reservation_id },
       data: {
-          status: "Cancelled",
+          status: "cancelled",
       }
   });
 
   await prisma.tickets.updateMany({
       where: { reservation_id: reservation_id },
       data: {
-          status: "Cancelled",
+          status: "cancelled",
       }
   });
 
@@ -120,7 +191,7 @@ export async function bookTicket(customer_id: number, flight_id: number, seat_nu
           seat_number: seat_number,
           class: ticket_class,
           price: ticket_price,
-          status: 'Active', // Trạng thái vé (ví dụ: Active, Cancelled)
+          status: 'Active', // Trạng thái vé (ví dụ: Active, cancelled)
       },
   });
 
@@ -590,6 +661,7 @@ export async function delay(flight_id:number, reason: string, delay_date: Date) 
           flight_id: flight_id,
       },
       data: {
+            flight_status: "Delayed",
           delay_reason: reason,
           updated_departure_time: delay_date,
       }
@@ -597,15 +669,97 @@ export async function delay(flight_id:number, reason: string, delay_date: Date) 
 }
 
 export async function test() {
-  const test = await prisma.flights.findMany({
-      where: {
-        flight_id: 6,
-      },
-      include: {
-        airports_flights_departure_airportToairports: true,
-        airports_flights_arrival_airportToairports: true,
-      }
-  })
-  console.log(test);
+    const test = await prisma.flight_stats.findMany({
+        where: {
+            flight_id: 6,
+        }
+    });
   return test;
+}
+
+export async function getBooking() {
+    const reservation = await prisma.reservations.findMany({
+        select: {
+            customers: true,
+            reservation_id: true,
+            booking_date: true,
+            tickets: true,
+            status: true,
+            flights: {
+                include: {
+                    airports_flights_departure_airportToairports: true,
+                    airports_flights_arrival_airportToairports: true,
+                    aircrafts: true,
+                },
+            },
+            
+        }
+    });
+    console.log(reservation);
+    const result = [];
+    for(var x of reservation) {
+        var total_price = 0;
+        for(var y of x.tickets) {
+            total_price += y.price.toNumber();
+        }
+        const date: Date = new Date(x.flights.departure_time); // Giả sử departure_time là kiểu Date
+        const booking_date: string = date.toISOString().split('T')[0]; // Lấy ngày
+        const object = {
+            id: x.reservation_id,
+            customerName: x.customers.name,
+            flightNumber: x.flights.flight_id,
+            departureCity: x.flights.airports_flights_departure_airportToairports.location,
+            arrivalCity: x.flights.airports_flights_arrival_airportToairports.location,
+            bookingDate: new Date(booking_date).toISOString().split('T')[0],
+            status: x.status,
+            ticketClass: x.tickets[0].class,
+            totalPrice: total_price,
+        }
+        result.push(object);
+    }
+    //console.log(result);
+    return result;
+}
+
+export async function getFlight() {
+    const flight = await prisma.flights.findMany({
+        include: {
+            airports_flights_departure_airportToairports: true,
+            airports_flights_arrival_airportToairports: true,
+        }
+    });
+    const result = [];
+    for(var x of flight) {
+        const departure: Date = new Date(x.departure_time); // Giả sử departure_time là kiểu Date
+        const departure_date: string = departure.toISOString().split('T')[0]; // Lấy ngày
+        const departure_time: string = departure.toISOString().split('T')[1].slice(0, 5);
+        const arrival: Date = new Date(x.arrival_time); // Giả sử arrival_time là kiểu Date
+        const arrival_date: string = arrival.toISOString().split('T')[0]; // Lấy ngày
+        const arrival_time: string = arrival.toISOString().split('T')[1].slice(0, 5);
+        const object = {
+            id: x.flight_id,
+            aircraft_id: x.aircraft_id,
+            departureCity: x.airports_flights_departure_airportToairports.location,
+            arrivalCity: x.airports_flights_arrival_airportToairports.location,
+            departureDate: departure_date,
+            arrivalDate: arrival_date,
+            departureTime: departure_time,
+            arrivalTime: arrival_time,
+            status: x.flight_status,
+            basePrice: x.base_price,
+        }
+        result.push(object);
+    }
+    return result;
+}
+
+export async function getChange(code: string) {
+    const response = prisma.airports.findUnique({
+        where: {iata_code: code},
+        select: {
+            airport_id: true,
+            location: true,
+        }
+    })
+    return response;
 }
