@@ -1,82 +1,62 @@
 import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client';
 import { adminGuard } from '../../middlewares/authentication/adminGuard';
+import * as query from '../../prisma/query.js';
+
 
 
 const prisma = new PrismaClient();
 const adminNews = new Hono();
 
-// Lấy danh sách tất cả tin tức (chỉ admin mới được phép)
-adminNews.get('/news', adminGuard, async (c) => {
+/**
+ * Đăng tin tức
+ */
+adminNews.post("/news",adminGuard, async (c) => {
   try {
-    const newsList = await prisma.news.findMany();
-    return c.json(newsList);
-  } catch (error) {
-    return c.json({ error: 'Không thể lấy danh sách tin tức!', message: (error as Error).message }, 500);
+      const {title, content, category, date} = await c.req.json();
+      if(!title || !content || !category || !date) 
+          return c.text("Thiếu tham số");
+      const response = await query.addNews(title, content, category, date);
+      return c.text("Đăng thông tin thành công với newId là " + response);
+  } catch(error) {
+      if (error instanceof Error) {
+          return c.text(error.message);
+      }
   }
 });
 
-// Lấy thông tin chi tiết của một tin tức theo ID
-adminNews.get('/news/:id', adminGuard, async (c) => {
-  const id = Number(c.req.param('id'));
-
+/**
+* Sửa tin 
+*/
+adminNews.put("/news",adminGuard, async (c) => {
   try {
-    const newsItem = await prisma.news.findUnique({
-      where: { news_id: id },
-    });
-
-    if (!newsItem) {
-      return c.json({ error: 'Tin tức không tồn tại!' }, 404);
-    }
-
-    return c.json(newsItem);
-  } catch (error) {
-    return c.json({ error: 'Không thể lấy thông tin tin tức!', message: (error as Error).message }, 500);
+      const {news_id, title, content, category, date} = await c.req.json();
+      if(!news_id || !title || !content || !category || !date) 
+          return c.text("Thiếu tham số");
+      const response = await query.updateNews(news_id, title, content, category, date);
+      return c.text("Sửa thông tin thành công");
+  } catch(error) {
+      if (error instanceof Error) {
+          return c.text(error.message);
+      }
   }
 });
 
-// Thêm một tin tức mới
-adminNews.post('/news', adminGuard, async (c) => {
-  const data = await c.req.json();
-
+/**
+* Xoá tin
+*/
+adminNews.delete("/news/:news_id",adminGuard, async (c) => {
   try {
-    const newNews = await prisma.news.create({ data });
-    return c.json(newNews);
-  } catch (error) {
-    return c.json({ error: 'Không thể tạo tin tức mới!', message: (error as Error).message }, 500);
+      const news_id = parseInt(c.req.param("news_id"), 10);
+      if (isNaN(news_id)) {
+          return c.text("NewsId không đúng định dạng");
+        }
+      const response = await query.deleteNews(news_id);
+      return c.text("Gỡ thông tin thành công");
+  } catch(error) {
+      if (error instanceof Error) {
+          return c.text(error.message);
+      }
   }
 });
-
-// Cập nhật thông tin tin tức theo ID
-adminNews.put('/news/:id', adminGuard, async (c) => {
-  const id = Number(c.req.param('id'));
-  const data = await c.req.json();
-
-  try {
-    const updatedNews = await prisma.news.update({
-      where: { news_id: id },
-      data,
-    });
-
-    return c.json(updatedNews);
-  } catch (error) {
-    return c.json({ error: 'Không thể cập nhật tin tức!', message: (error as Error).message }, 500);
-  }
-});
-
-// Xóa một tin tức theo ID
-adminNews.delete('/news/:id', adminGuard, async (c) => {
-  const id = Number(c.req.param('id'));
-
-  try {
-    await prisma.news.delete({
-      where: { news_id: id },
-    });
-
-    return c.json({ message: 'Xóa tin tức thành công!' });
-  } catch (error) {
-    return c.json({ error: 'Không thể xóa tin tức!', message: (error as Error).message }, 500);
-  }
-});
-
 export default adminNews;
