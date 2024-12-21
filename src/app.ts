@@ -14,6 +14,7 @@ import { logger } from './middlewares/logging/logger';
 import customerAuthRoute from './routes/auth/customerAuth';
 import adminAuthRoute from './routes/auth/adminAuth';
 import adminAircraft from './routes/admin/aircraft';
+import airportsRoute from './routes/customers/airports';
 // import {cors} from 'hono/cors';
 
 const app = new Hono();
@@ -37,6 +38,7 @@ app.route('/auth/admin', adminAuthRoute);
 
 app.route('/customers', customerFlights);
 app.route('/customers', customerTickets);
+app.route('/', airportsRoute);
 app.route('/admin', adminAircraft);
 app.route('/admin', adminFlights);
 app.route('/admin', adminPromotions);
